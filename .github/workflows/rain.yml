@@ -1,0 +1,34 @@
+name: Save rain chance
+
+on:
+  schedule:
+    - cron: '5 22 * * *' # 07:05 Asia/Seoul (UTC+9, no daylight saving)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Fetch today's Seoul rain chance
+        run: |
+          curl -fsS --retry 3 -o "$RUNNER_TEMP/forecast.json" \
+            'https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.978&daily=precipitation_probability_max&timezone=Asia%2FSeoul&forecast_days=1'
+          jq --arg updated "$(TZ=Asia/Seoul date -Iseconds)" '{
+              date: .daily.time[0],
+              chance: (.daily.precipitation_probability_max[0] | if type == "number" then . else error("no forecast") end),
+              updated: $updated
+            }' "$RUNNER_TEMP/forecast.json" > rain.json
+          cat rain.json
+
+      - name: Commit rain.json
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add rain.json
+          git commit -m "Update rain.json for $(jq -r .date rain.json)"
+          git push

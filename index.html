@@ -1,14 +1,16 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Umbrella Library</title></head>
 <body><h1>Umbrella Library</h1><p>A tiny library in Seoul that lends umbrellas on rainy days.</p>
-<section style="border:1px solid #ccc;border-radius:8px;padding:1rem;max-width:22rem"><h2>Rain Check</h2><p id="rain-msg" role="status">Checking today's forecast…</p></section>
+<section style="border:1px solid #ccc;border-radius:8px;padding:1rem;max-width:22rem"><h2>Rain Check</h2><p id="rain-msg" role="status">Checking today's forecast…</p><small id="rain-time"></small></section>
 <script>
 const rainMsg = document.getElementById('rain-msg');
-fetch('https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.978&daily=precipitation_probability_max&timezone=Asia%2FSeoul&forecast_days=1')
+fetch('rain.json', { cache: 'no-store' })
   .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
   .then(d => {
-    const p = d.daily?.precipitation_probability_max?.[0];
+    const p = d.chance;
     if (typeof p !== 'number') throw new Error('no forecast');
+    document.getElementById('rain-time').textContent = 'Updated ' + new Date(d.updated).toLocaleString('en-US',
+      { timeZone: 'Asia/Seoul', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (Seoul time)';
     const tip = p >= 60 ? 'Rain is likely. Borrow an umbrella on your way out.'
       : p >= 30 ? 'Rain is possible. An umbrella is a safe bet.'
       : 'Looks dry. No umbrella needed today.';
