@@ -25,6 +25,29 @@ jobs:
             }' "$RUNNER_TEMP/forecast.json" > rain.json
           cat rain.json
 
+      - name: Ask Jev whether to put the umbrellas out
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: |
+          # No key or no answer: keep the forecast and skip the decision.
+          if [ -z "$TYPESAFE_API_KEY" ]; then echo "No TYPESAFE_API_KEY secret, skipping Jev."; exit 0; fi
+          jq '{
+              model: "jev-latest",
+              state: { city: "Seoul", date: .date, chance_of_rain_percent: .chance },
+              questions: { umbrellas_out: { type: "noul", instructions: "The library should put the umbrellas out today" } }
+            }' rain.json > "$RUNNER_TEMP/ask.json"
+          if curl -fsS --retry 2 https://api.typesafe.ai/v1/systemone \
+               -H "Authorization: Bearer $TYPESAFE_API_KEY" -H 'Content-Type: application/json' \
+               --data-binary @"$RUNNER_TEMP/ask.json" -o "$RUNNER_TEMP/answer.json" \
+             && noul=$(jq -e '.answers.umbrellas_out.noul | numbers' "$RUNNER_TEMP/answer.json"); then
+            echo "Jev noul for umbrellas out: $noul"
+            jq --argjson noul "$noul" '. + { umbrellas_out: $noul }' rain.json > "$RUNNER_TEMP/rain.json"
+            mv "$RUNNER_TEMP/rain.json" rain.json
+          else
+            echo "Jev did not answer, keeping the forecast without a decision."
+          fi
+          cat rain.json
+
       - name: Commit rain.json
         run: |
           git config user.name 'github-actions[bot]'

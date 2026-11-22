@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Umbrella Library</title></head>
 <body><h1>Umbrella Library</h1><p>A tiny library in Seoul that lends umbrellas on rainy days.</p>
-<section style="border:1px solid #ccc;border-radius:8px;padding:1rem;max-width:22rem"><h2>Rain Check</h2><p id="rain-msg" role="status">Checking today's forecast…</p><small id="rain-time"></small></section>
+<section style="border:1px solid #ccc;border-radius:8px;padding:1rem;max-width:22rem"><h2>Rain Check</h2><p id="rain-msg" role="status">Checking today's forecast…</p><p id="jev-msg" hidden></p><small id="rain-time"></small></section>
 <script>
 const rainMsg = document.getElementById('rain-msg');
 fetch('rain.json', { cache: 'no-store' })
@@ -15,6 +15,12 @@ fetch('rain.json', { cache: 'no-store' })
       : p >= 30 ? 'Rain is possible. An umbrella is a safe bet.'
       : 'Looks dry. No umbrella needed today.';
     rainMsg.textContent = `${p}% chance of rain in Seoul today. ${tip}`;
+    // Jev judges, the page decides: above 0.8 the umbrellas go out.
+    if (typeof d.umbrellas_out === 'number') {
+      const jev = document.getElementById('jev-msg');
+      jev.textContent = (d.umbrellas_out > 0.8 ? 'Jev says: umbrellas out' : 'Jev says: umbrellas stay in') + ` (${d.umbrellas_out.toFixed(2)}).`;
+      jev.hidden = false;
+    }
   })
   .catch(() => { rainMsg.textContent = "Couldn't load today's forecast. Try again later."; });
 </script>
