@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-23",
+  "cards": [
+    {
+      "code": "QD",
+      "value": "QUEEN",
+      "suit": "DIAMONDS",
+      "image": "https://deckofcardsapi.com/static/img/QD.png"
+    },
+    {
+      "code": "9S",
+      "value": "9",
+      "suit": "SPADES",
+      "image": "https://deckofcardsapi.com/static/img/9S.png"
+    },
+    {
+      "code": "JC",
+      "value": "JACK",
+      "suit": "CLUBS",
+      "image": "https://deckofcardsapi.com/static/img/JC.png"
+    },
+    {
+      "code": "9H",
+      "value": "9",
+      "suit": "HEARTS",
+      "image": "https://deckofcardsapi.com/static/img/9H.png"
+    },
+    {
+      "code": "0S",
+      "value": "10",
+      "suit": "SPADES",
+      "image": "https://deckofcardsapi.com/static/img/0S.png"
+    }
+  ],
+  "updated": "2026-11-23T15:33:04+09:00"
+}
