@@ -26,17 +26,17 @@ jobs:
 
       - name: Ask Jev whether to go all in
         env:
-          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          # No key or no answer: keep the hand and skip the decision.
-          if [ -z "$TYPESAFE_API_KEY" ]; then echo "No TYPESAFE_API_KEY secret, skipping Jev."; exit 0; fi
+          # Jev through OpenRouter's Decisions API. No key or no answer: keep the hand and skip the decision.
+          if [ -z "$OPENROUTER_API_KEY" ]; then echo "No OPENROUTER_API_KEY secret, skipping Jev."; exit 0; fi
           jq '{
-              model: "jev-latest",
-              state: { game: "five-card poker", hand: [.cards[] | "\(.value) of \(.suit)"] },
+              model: "typesafe/jev-1.14",
+              state: ("Five-card poker hand: " + ([.cards[] | "\(.value) of \(.suit)"] | join(", "))),
               questions: { all_in: { type: "noul", instructions: "A good poker player would go all in with this hand" } }
             }' hand.json > "$RUNNER_TEMP/ask.json"
-          if curl -fsS --retry 2 https://api.typesafe.ai/v1/systemone \
-               -H "Authorization: Bearer $TYPESAFE_API_KEY" -H 'Content-Type: application/json' \
+          if curl -fsS --retry 2 https://openrouter.ai/api/alpha/decisions \
+               -H "Authorization: Bearer $OPENROUTER_API_KEY" -H 'Content-Type: application/json' \
                --data-binary @"$RUNNER_TEMP/ask.json" -o "$RUNNER_TEMP/answer.json" \
              && noul=$(jq -e '.answers.all_in.noul | numbers' "$RUNNER_TEMP/answer.json"); then
             echo "Jev noul for all in: $noul"
