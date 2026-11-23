@@ -1,27 +1,77 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Umbrella Library</title></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Umbrella Library</title>
+<style>
+  section { border: 1px solid #ccc; border-radius: 8px; padding: 1rem; max-width: 30rem; margin-bottom: 1rem; }
+  .cards { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .cards img { width: 4.5rem; height: auto; }
+</style></head>
 <body><h1>Umbrella Library</h1><p>A tiny library in Seoul that lends umbrellas on rainy days.</p>
-<section style="border:1px solid #ccc;border-radius:8px;padding:1rem;max-width:22rem"><h2>Rain Check</h2><p id="rain-msg" role="status">Checking today's forecast…</p><p id="jev-msg" hidden></p><small id="rain-time"></small></section>
+
+<section><h2>High Card</h2>
+  <div class="cards"><img id="card-img" alt="" width="226" height="314" hidden></div>
+  <p id="card-msg" role="status">Drawing a card…</p>
+</section>
+
+<section><h2>Morning Hand</h2>
+  <div class="cards" id="hand-cards"></div>
+  <p id="hand-msg" role="status">Dealing this morning's hand…</p>
+  <p id="jev-msg" hidden></p>
+  <small id="hand-time"></small>
+</section>
+
 <script>
-const rainMsg = document.getElementById('rain-msg');
-fetch('rain.json', { cache: 'no-store' })
+// "KING", "SPADES" -> "King of Spades"
+const title = s => s.charAt(0) + s.slice(1).toLowerCase();
+const cardName = c => `${title(c.value)} of ${title(c.suit)}`;
+
+// Exercise 1: one card from a freshly shuffled deck each time the page opens. Ace is high.
+const cardMsg = document.getElementById('card-msg');
+fetch('https://deckofcardsapi.com/api/deck/new/draw/?count=1')
   .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
   .then(d => {
-    const p = d.chance;
-    if (typeof p !== 'number') throw new Error('no forecast');
-    document.getElementById('rain-time').textContent = 'Updated ' + new Date(d.updated).toLocaleString('en-US',
+    const c = d.cards[0];
+    const img = document.getElementById('card-img');
+    img.src = c.image; img.alt = cardName(c); img.hidden = false;
+    cardMsg.textContent = `You drew the ${cardName(c)}.`;
+  })
+  .catch(() => { cardMsg.textContent = "Couldn't reach the dealer. Reload to try again."; });
+
+// The name of a five-card poker hand, best first.
+function handName(cards) {
+  const rank = { ACE: 14, KING: 13, QUEEN: 12, JACK: 11 };
+  const values = cards.map(c => rank[c.value] ?? Number(c.value)).sort((a, b) => b - a);
+  const counts = Object.values(values.reduce((n, v) => ({ ...n, [v]: (n[v] ?? 0) + 1 }), {})).sort((a, b) => b - a);
+  const flush = new Set(cards.map(c => c.suit)).size === 1;
+  const unique = new Set(values).size === 5;
+  const straight = unique && (values[0] - values[4] === 4 || values.join() === '14,5,4,3,2'); // A-2-3-4-5 counts
+  if (straight && flush) return values[4] === 10 ? 'Royal flush' : 'Straight flush';
+  if (counts[0] === 4) return 'Four of a kind';
+  if (counts[0] === 3 && counts[1] === 2) return 'Full house';
+  if (flush) return 'Flush';
+  if (straight) return 'Straight';
+  if (counts[0] === 3) return 'Three of a kind';
+  if (counts[0] === 2 && counts[1] === 2) return 'Two pair';
+  if (counts[0] === 2) return 'One pair';
+  return 'High card';
+}
+
+// Exercise 2: the hand the morning job dealt into hand.json.
+const handMsg = document.getElementById('hand-msg');
+fetch('hand.json', { cache: 'no-store' })
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(d => {
+    if (!Array.isArray(d.cards) || d.cards.length !== 5) throw new Error('no hand');
+    document.getElementById('hand-cards').replaceChildren(...d.cards.map(c => Object.assign(new Image(226, 314), { src: c.image, alt: cardName(c) })));
+    handMsg.textContent = `${handName(d.cards)}: ${d.cards.map(cardName).join(', ')}.`;
+    document.getElementById('hand-time').textContent = 'Dealt ' + new Date(d.updated).toLocaleString('en-US',
       { timeZone: 'Asia/Seoul', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (Seoul time)';
-    const tip = p >= 60 ? 'Rain is likely. Borrow an umbrella on your way out.'
-      : p >= 30 ? 'Rain is possible. An umbrella is a safe bet.'
-      : 'Looks dry. No umbrella needed today.';
-    rainMsg.textContent = `${p}% chance of rain in Seoul today. ${tip}`;
-    // Jev judges, the page decides: above 0.8 the umbrellas go out.
-    if (typeof d.umbrellas_out === 'number') {
+    // Jev judges, the page decides: above 0.8 it goes all in.
+    if (typeof d.all_in === 'number') {
       const jev = document.getElementById('jev-msg');
-      jev.textContent = (d.umbrellas_out > 0.8 ? 'Jev says: umbrellas out' : 'Jev says: umbrellas stay in') + ` (${d.umbrellas_out.toFixed(2)}).`;
+      jev.textContent = (d.all_in > 0.8 ? 'Jev says: all in' : 'Jev says: fold') + ` (${d.all_in.toFixed(2)}).`;
       jev.hidden = false;
     }
   })
-  .catch(() => { rainMsg.textContent = "Couldn't load today's forecast. Try again later."; });
+  .catch(() => { handMsg.textContent = "No hand dealt yet. The job runs every morning at 07:05."; });
 </script>
 </body></html>

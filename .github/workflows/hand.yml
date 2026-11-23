@@ -1,0 +1,56 @@
+name: Deal the morning hand
+
+on:
+  schedule:
+    - cron: '5 22 * * *' # 07:05 Asia/Seoul (UTC+9, no daylight saving)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Deal five cards
+        run: |
+          curl -fsS --retry 3 -o "$RUNNER_TEMP/draw.json" 'https://deckofcardsapi.com/api/deck/new/draw/?count=5'
+          jq --arg date "$(TZ=Asia/Seoul date +%F)" --arg updated "$(TZ=Asia/Seoul date -Iseconds)" '{
+              date: $date,
+              cards: (.cards | if length == 5 then map({ code, value, suit, image }) else error("no hand") end),
+              updated: $updated
+            }' "$RUNNER_TEMP/draw.json" > hand.json
+          cat hand.json
+
+      - name: Ask Jev whether to go all in
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: |
+          # No key or no answer: keep the hand and skip the decision.
+          if [ -z "$TYPESAFE_API_KEY" ]; then echo "No TYPESAFE_API_KEY secret, skipping Jev."; exit 0; fi
+          jq '{
+              model: "jev-latest",
+              state: { game: "five-card poker", hand: [.cards[] | "\(.value) of \(.suit)"] },
+              questions: { all_in: { type: "noul", instructions: "A good poker player would go all in with this hand" } }
+            }' hand.json > "$RUNNER_TEMP/ask.json"
+          if curl -fsS --retry 2 https://api.typesafe.ai/v1/systemone \
+               -H "Authorization: Bearer $TYPESAFE_API_KEY" -H 'Content-Type: application/json' \
+               --data-binary @"$RUNNER_TEMP/ask.json" -o "$RUNNER_TEMP/answer.json" \
+             && noul=$(jq -e '.answers.all_in.noul | numbers' "$RUNNER_TEMP/answer.json"); then
+            echo "Jev noul for all in: $noul"
+            jq --argjson noul "$noul" '. + { all_in: $noul }' hand.json > "$RUNNER_TEMP/hand.json"
+            mv "$RUNNER_TEMP/hand.json" hand.json
+          else
+            echo "Jev did not answer, keeping the hand without a decision."
+          fi
+          cat hand.json
+
+      - name: Commit hand.json
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add hand.json
+          git commit -m "Deal the hand for $(jq -r .date hand.json)"
+          git push
