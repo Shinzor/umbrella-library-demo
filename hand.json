@@ -1,17 +1,23 @@
 {
-  "date": "2026-11-25",
+  "date": "2026-11-26",
   "cards": [
     {
-      "code": "2D",
-      "value": "2",
+      "code": "8D",
+      "value": "8",
       "suit": "DIAMONDS",
-      "image": "https://deckofcardsapi.com/static/img/2D.png"
+      "image": "https://deckofcardsapi.com/static/img/8D.png"
     },
     {
-      "code": "2S",
-      "value": "2",
-      "suit": "SPADES",
-      "image": "https://deckofcardsapi.com/static/img/2S.png"
+      "code": "AC",
+      "value": "ACE",
+      "suit": "CLUBS",
+      "image": "https://deckofcardsapi.com/static/img/AC.png"
+    },
+    {
+      "code": "KD",
+      "value": "KING",
+      "suit": "DIAMONDS",
+      "image": "https://deckofcardsapi.com/static/img/KD.png"
     },
     {
       "code": "KC",
@@ -20,18 +26,12 @@
       "image": "https://deckofcardsapi.com/static/img/KC.png"
     },
     {
-      "code": "2C",
-      "value": "2",
-      "suit": "CLUBS",
-      "image": "https://deckofcardsapi.com/static/img/2C.png"
-    },
-    {
-      "code": "7H",
-      "value": "7",
-      "suit": "HEARTS",
-      "image": "https://deckofcardsapi.com/static/img/7H.png"
+      "code": "3S",
+      "value": "3",
+      "suit": "SPADES",
+      "image": "https://deckofcardsapi.com/static/img/3S.png"
     }
   ],
-  "updated": "2026-11-25T13:48:21+09:00",
+  "updated": "2026-11-26T12:58:40+09:00",
   "all_in": 0.11
 }
